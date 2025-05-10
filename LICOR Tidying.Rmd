@@ -1,0 +1,53 @@
+#LICOR logger 
+
+libraies needed 
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+uploading data to the correct format
+```{r}
+licor_kvavik_0924 <- read_csv2("Kvavik_02.09.24_licor.csv", 
+                               col_types = cols(
+                                 Location = col_character(),
+                                 Depth = col_double(),
+                                 "avg read" = col_double(),
+                                 "read 1"= col_double(),
+                                 "read 2" = col_double(),
+                                 "read 3" = col_double(),
+                                 comment = col_character(),
+                                 time = col_character(),
+                                 Date = col_character()
+                               ), 
+                               locale = locale(decimal_mark = ","))
+#this was repeated for all stations
+```
+all files are combined
+```{r}
+Licor_2024<-rbind(licor_Kollevoll_0924,licor_Lok1_0924,licor_Lok1_1224,licor_Lok2_0924, licor_MFS_0924, licor_MFS_1224, licor_kvavik_0924, licor_kvavik_1224, licor_Prestoyrenna_1224, licor_Svartskjaer_0924)
+```
+the mean from 3 reads was calculated
+```{r}
+Licor_2024 <- Licor_2024 %>%
+  rowwise() %>%
+  mutate(
+    mean_licor = mean(c_across(c("read 1", "read 2", "read 3"))),
+    sd_licor = sd(c_across(c("read 1", "read 2", "read 3")))
+  ) %>%
+  ungroup()
+```
+
+
+```{r}
+depth_light_percent <- Licor_2024 %>%
+  group_by(Location, Date) %>%
+  mutate(
+    surface_mean_value = mean_licor[Depth == -1],  # mean at  -1 m
+    light_percent = (mean_licor / surface_mean_value) * 100, # percentage of light (mean) 
+    surface_sd_value = mean_licor[Depth == -1],  # SD at -1 m
+    light_percent_sd = (sd_licor / surface_sd_value) * 100  #percent surface light (sd) 
+  ) %>%
+  select(Location, Date, Depth, mean_licor, sd_licor, light_percent, light_percent_sd, Season) %>%
+  ungroup()
+```
+
