@@ -1,0 +1,222 @@
+#Descriptive statistics for environmental variables 
+
+##nutrients
+```{r}
+nutrients_chla15<-nutrients_chla%>%
+  filter(Depth >= 0 & Depth <= 15)
+
+```
+```{r}
+nutrient_stats_season <- nutrients_chla15 %>%
+  filter(Compound %in% c("Nitrate Nitrite", "Total Phosphate", "Silicate")) %>%
+  group_by(Season, Compound) %>%
+  summarise(
+    mean_value = mean(micromol_per_L, na.rm = TRUE),
+    sd_value = sd(micromol_per_L, na.rm = TRUE),
+    min_value = min(micromol_per_L, na.rm = TRUE),
+    max_value = max(micromol_per_L, na.rm = TRUE),
+    min_depth = Depth[which.min(micromol_per_L)],
+    max_depth = Depth[which.max(micromol_per_L)],
+    min_location = Location[which.min(micromol_per_L)],
+    max_location = Location[which.max(micromol_per_L)],
+    .groups = "drop"
+  )
+
+```
+```{r}
+nutrient_stats_location <- nutrients_chla15 %>%
+  filter(Compound %in% c("Nitrate Nitrite", "Total Phosphate", "Silicate")) %>%
+  group_by(Location, Season, Compound) %>%
+  summarise(
+    mean_value = mean(micromol_per_L, na.rm = TRUE),
+    sd_value = sd(micromol_per_L, na.rm = TRUE),
+    min_value = min(micromol_per_L, na.rm = TRUE),
+    max_value = max(micromol_per_L, na.rm = TRUE),
+    min_depth = Depth[which.min(micromol_per_L)],
+    max_depth = Depth[which.max(micromol_per_L)],
+    min_location = Location[which.min(micromol_per_L)],
+    max_location = Location[which.max(micromol_per_L)],
+    .groups = "drop"
+  )
+```
+##temperature 
+```{r}
+temp_summary <- adonis_data_clean2%>%
+  group_by(Season) %>%
+  summarise(
+    mean_temp = mean(Temperature, na.rm = TRUE),
+    sd_temp = sd(Temperature, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+```
+```{r}
+temp_stats_season <- motherdoc_long_filtered20 %>%
+  filter(Variable == "Temperature") %>%
+  group_by( Season) %>%
+  summarise(
+    mean_temp = mean(Value, na.rm = TRUE),
+    sd_temp = sd(Value, na.rm = TRUE),
+    min_temp = min(Value, na.rm = TRUE),
+    max_temp = max(Value, na.rm = TRUE),
+    min_depth = Depth[which.min(Value)],
+    max_depth = Depth[which.max(Value)],
+    .groups = "drop"
+  )
+
+temp_stats_location <- motherdoc_long_filtered20 %>%
+  filter(Variable == "Temperature") %>%
+  group_by(Location, Season) %>%
+  summarise(
+    mean_temp = mean(Value, na.rm = TRUE),
+    sd_temp = sd(Value, na.rm = TRUE),
+    min_temp = min(Value, na.rm = TRUE),
+    max_temp = max(Value, na.rm = TRUE),
+    min_depth = Depth[which.min(Value)],
+    max_depth = Depth[which.max(Value)],
+    .groups = "drop"
+  )
+
+```
+##CDOM
+###0m
+```{r}
+df_cdom_filtered_350_0m <- df_cdom_filtered_350 %>%
+  filter(Depth == 0)
+```
+
+```{r}
+# Beregn statistikk for abs_coefficient per sesong
+season_stats_0 <- df_cdom_filtered_350_0m %>%
+  group_by(Season) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+  )
+
+# Beregn statistikk for abs_coefficient per lokasjon
+location_stats_0 <- df_cdom_filtered_350_0m %>%
+  group_by(Location) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_season = Season[which.min(abs_coefficient)],
+    max_season = Season[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+)
+
+# Finn min og maks verdi for abs_coefficient med tilhørende dato og lokasjon
+min_max_values_0 <- df_cdom_filtered_350_0m %>%
+  summarise(
+    min_value = min(abs_coefficient, na.rm = TRUE),
+    max_value = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+  )
+
+# Utskrift av resultatene
+print(season_stats_0)
+print(location_stats_0)
+print(min_max_values_0)
+
+```
+```{r}
+location_stats_fall <- df_cdom_filtered_350_0m %>%
+  filter(Season == "Early_Fall") %>%
+  group_by(Location) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)]
+  )
+```
+
+###5m
+```{r}
+df_cdom_filtered_350_5m <- df_cdom_filtered_350 %>%
+  filter(Depth == 5)
+```
+
+
+```{r}
+# Beregn statistikk for abs_coefficient per sesong
+season_stats_5 <- df_cdom_filtered_350_5m %>%
+  group_by(Season) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+  )
+
+# Beregn statistikk for abs_coefficient per lokasjon
+location_stats_5 <- df_cdom_filtered_350_5m %>%
+  group_by(Location) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_season = Season[which.min(abs_coefficient)],
+    max_season = Season[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+)
+
+# Finn min og maks verdi for abs_coefficient med tilhørende dato og lokasjon
+min_max_values_5 <- df_cdom_filtered_350_5m %>%
+  summarise(
+    min_value = min(abs_coefficient, na.rm = TRUE),
+    max_value = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+  )
+
+# Utskrift av resultatene
+print(season_stats_5)
+print(location_stats_5)
+print(min_max_values_5)
+
+```
+
+##light 
+```{r}
+motherdoc_fall <- motherdoc %>% filter(Season == "Fall")
+motherdoc_winter <- motherdoc %>% filter(Season == "Winter")
+```
+
+```{r}
+kruskal.test(light_percent ~ Location, data = motherdoc_fall)
+
+# Dunn's test (med Bonferroni- eller Holm-korrigering)
+dunn.test(motherdoc_fall$light_percent, motherdoc_fall$Location, method = "bonferroni")
+```
+
+```{r}
+kruskal.test(light_percent ~ Location, data = motherdoc_winter)
+
+# Dunn's test (med Bonferroni- eller Holm-korrigering)
+dunn.test(motherdoc_winter$light_percent, motherdoc_winter$Location, method = "bonferroni")
+```
+
+

@@ -1,0 +1,505 @@
+#Figures from DNA, trophic modes and size structure
+
+
+```{r}
+library(tidyverse)
+library(pheatmap)
+library(paletteer)
+library(vegan)
+library(ggrepel)
+
+```
+
+##class
+```{r}
+ps_melted_class <- df_protist_rarefied %>%
+  group_by(Sample, Class, Location, Season, Depth, Date) %>%  # important columns
+  summarise(Total_Abundance = sum(Abundance), .groups = "drop") %>%  # Summerise abundance for each class per Sample
+  group_by(Sample, Depth) %>% #Group by both Sample og Depth calculate relative abundance for each depth
+  mutate(Relative_Abundance = Total_Abundance / sum(Total_Abundance)) %>%  # Calculating  relative abundance per class
+  ungroup() %>%
+  mutate(Class = ifelse(Relative_Abundance < 0.1, "Other", Class))%>% #making a new category for classes below 10% 
+   mutate(Class = factor(Class, levels = c(
+    setdiff(unique(Class[order(Relative_Abundance, decreasing = TRUE)]), "Other"),
+    "Other"
+  )))
+
+ggplot(ps_melted_class, aes(x = Location, y = Relative_Abundance, fill = Class)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_grid(rows = vars(Depth), cols = vars(Season), scales = "free_x") +  # Facet grid with depth and season
+scale_fill_manual(values = class_colors,
+                    labels = class_names)+
+  labs(x = "Location",
+       y = "Relative Abundance",
+       fill = "Class") +
+  theme_minimal()+# adding the theme for a coherent look 
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+
+##order
+```{r}
+ps_melted_ord <- ps_protist_rarefied_df %>%
+  group_by(Sample, Order, Location, Season, Depth, Date) %>%  
+  summarise(Total_Abundance = sum(Abundance), .groups = "drop") %>%  
+  group_by(Sample, Depth) %>%  
+  mutate(Relative_Abundance = Total_Abundance / sum(Total_Abundance)) %>%  
+  ungroup() %>%
+  mutate(Order = ifelse(Relative_Abundance < 0.05, "Other", Order))%>%
+   mutate(Order = factor(Order, levels = c(
+    setdiff(unique(Order[order(Relative_Abundance, decreasing = TRUE)]), "Other"),
+    "Other"
+  )))
+
+ggplot(ps_melted_ord, aes(x = Location, y = Relative_Abundance, fill = Order)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_grid(rows = vars(Depth), cols = vars(Season), scales = "free_x",labeller = labeller(Season = c("Post_Spring_bloom"="May", "Early_Fall"="September", "Early_winter"="December"))) +  
+  scale_fill_manual(values = my_gradient_palette(length(unique(ps_melted_ord$Order)))) +
+  labs(x = "Location",
+       y = "Relative Abundance",
+       fill = "Order") +
+  theme_minimal()+
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(face = "italic", size = 10),
+    legend.title = element_text(size = 12), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+
+##species 
+```{r}
+ps_melted_species <- ps_protist_rarefied_df %>%
+  group_by(Sample, Species, Location, Season, Depth, Date) %>%  
+  summarise(Total_Abundance = sum(Abundance), .groups = "drop") %>%  
+  group_by(Sample, Depth) %>%  
+  mutate(Relative_Abundance = Total_Abundance / sum(Total_Abundance)) %>% 
+  ungroup() %>%
+  mutate(Species = ifelse(Relative_Abundance < 0.1, "Other", Species))%>%
+   mutate(Species = factor(Species, levels = c(
+    setdiff(unique(Species[order(Relative_Abundance, decreasing = TRUE)]), "Other"),
+    "Other"
+  )))
+ggplot(ps_melted_species, aes(x = Location, y = Relative_Abundance, fill = Species)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_grid(rows = vars(Depth), cols = vars(Season), scales = "free_x",labeller = labeller(Season = c("Post_Spring_bloom"="May", "Early_Fall"="September", "Early_winter"="December"))) + 
+  scale_fill_manual(values = my_gradient_palette(length(unique(ps_melted_species$Species)))) +
+  labs(x = "Location",
+       y = "Relative Abundance",
+       fill = "Species") +
+  theme_minimal()+
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(face = "italic", size = 10),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+
+##Alpha diversity
+```{r}
+ggplot(shannonsimpsondf_long, aes(x = Location, y = value )) +
+  geom_point(size=2,aes(colour = Depth))+
+  facet_grid(cols = vars(Season),rows = vars(div_index), scales = "free_y", labeller = labeller(Season = c("Post_Spring_bloom"="May", "Early_Fall"="September", "Early_Winter"="December"))) + 
+  labs(x = "Location",
+       y = "Alpha Diversity Measure") +
+scale_color_manual(values=c("0m"="#F4C40FFF", "5m" = "#E87B89FF", "15m"="#9F5691FF"))+
+  theme_minimal()+
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(face = "italic", size = 12),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+
+
+##NMSD plot for clustering of communty composition 
+
+```{r}
+# 1. making the  NMDS
+nmds <- metaMDS(asv_table_rarefied_cdom, distance = "bray", k = 2, trymax = 100)
+nmds_df <- as.data.frame(nmds$points)
+nmds_df$Sample <- rownames(nmds_df)
+meta_data_matched_cdom_for_pca<-meta_data_matched_cdom%>%
+  select(-mean_licor)
+# Legg til metadata
+meta_data_matched_cdom$Sample <- rownames(meta_data_matched_cdom_for_pca)
+nmds_df <- merge(nmds_df, meta_data_matched_cdom, by = "Sample")
+
+# 2. Miljøvariabler (velg kolonner uten NA og som er numeriske)
+env_vars <- meta_data_matched_cdom[, c("abs_coefficient", "Temperature", "Salinity", "Nitrate_Nitrite", "Depth")]
+
+# 3. Kjør envfit
+envfit_res <- envfit(nmds, env_vars, permutations = 999)
+
+# 4. Ekstraher koordinatene for vektorer (miljøvariabler)
+vectors_df <- as.data.frame(scores(envfit_res, display = "vectors"))
+
+# 5. Legg til kolonne med vektornavn
+vectors_df$Variable <- rownames(vectors_df)
+
+# 6. Skaler vektorer (valgfritt)
+scale_factor <- 1.5
+vectors_df$MDS1 <- vectors_df$NMDS1 * scale_factor
+vectors_df$MDS2 <- vectors_df$NMDS2 * scale_factor
+
+```
+plot
+```{r}
+nmds_df$Season <- factor(nmds_df$Season, levels = c("Post_Spring_bloom", "Early_Fall", "Early_Winter"))
+pretty_col_names <- c("abs_coefficient"="aCDOM(350)", "Temperature"= "Temperature","Salinity"="Salinity","Nitrate_Nitrite"="NO₃⁻ + NO₂⁻")
+
+ggplot(nmds_df, aes(x = MDS1, y = MDS2, colour = Season)) +
+  geom_point(size = 3) +
+  geom_text(aes(label = Sample), vjust = -1, size = 2.6) +
+  geom_mark_ellipse(aes(group = Season)) +
+  geom_segment(data = vectors_df,
+               aes(x = 0, y = 0, xend = MDS1, yend = MDS2),
+               arrow = arrow(length = unit(0.2, "cm")),
+               color = "black", inherit.aes = FALSE) +
+  geom_text_repel(data = vectors_df,
+                  aes(x = MDS1, y = MDS2, label = pretty_col_names[Variable]),
+                  color = "black", size = 4, inherit.aes = FALSE, box.padding = 0.4, max.overlaps = 10) +
+  scale_colour_manual(values = c("Post_Spring_bloom" = "#F4C40FFF", 
+                                 "Early_Fall" = "#9F5691FF", 
+                                 "Early_Winter" = "#E87B89FF"),
+                      labels = c("Post_Spring_bloom" = "May",
+                                 "Early_Fall" = "September",
+                                 "Early_Winter" = "December")) +
+  labs(x = "NMDS1", y = "NMDS2", colour = "Sampling month") +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+#Trophic mode 
+
+##barplot 
+```{r}
+tax.troph1_rarefied <- tax.troph_rarefied %>%
+  group_by(Sample, Location, Depth, Season) %>%
+  mutate(Relative_Abundance = Abundance / sum(Abundance)) %>% 
+  arrange(desc(Relative_Abundance), .by_group = TRUE) %>%
+  mutate(troph = factor(troph, levels = unique(troph)))
+
+# Deretter lager vi grafen med farge for NA og riktig rekkefølge på stackene
+ggplot(tax.troph1_rarefied, aes(x = Location, y = Relative_Abundance, fill = troph)) +
+  geom_bar(stat = "identity", position = "stack") +
+  # Bruk stack for å ha de med høyest relativ abundance nederst
+  facet_grid(rows = vars(Depth), cols = vars(Season), scales = "free_x",labeller = labeller(Season = c("Post_Spring_bloom"="May", "Early_Fall"="September", "Early_winter"="December"))) + 
+  scale_fill_manual(values = c(  # Sett en spesifikk farge for NA
+                               "phototroph" = "#FBE183",  # Eksempler på farger, tilpass etter behov
+                               "c_mixotroph" = "#F4C40FFF",
+                               "heterotroph" ="#FE9B00FF",
+                               "parasite" = "#E87B89",
+                              "n_mixotroph" = "#1F6E9C"
+                              
+                              ), na.value = "#9F5691",labels = pretty_trophic_names
+  )+  # Legg til flere om nødvendig
+  labs(x = "Location",
+       y = "Relative Abundance",
+       fill = "Trophic Mode") +
+   
+  theme_minimal() +
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(, size = 12),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+
+##correlations/ heatmap plot 
+```{r}
+trophic_cdom_rel <- adonis_data_cdom %>%
+  rowwise() %>%
+  mutate(total_reads = sum(c_across(c("c_mixotroph","heterotroph","n_mixotroph","parasite","phototroph" ,"<NA>")), na.rm = TRUE)) %>%
+  ungroup()
+```
+```{r}
+# Spesifiser datasett og variabler
+trophic_vars <- c("rel_c_mixotroph", "rel_heterotroph" ,"rel_n_mixotroph", "rel_parasite" , "rel_phototroph", "rel_<NA>")
+env_vars <- c("abs_coefficient", "Nitrate_Nitrite", "Total_Phosphate", "Silicate", "Salinity", "Temperature","Depth")
+
+```
+
+```{r}
+# Sjekk rekkefølgen på trophic_vars
+print(trophic_vars)
+
+# Match pretty_row_names til rekkefølgen i trophic_vars
+pretty_row_names <- c("Constitutive Mixotroph","Heterotroph","Non-constitutive Mixotroph", "Parasite","Phototroph","Not Assigned")
+
+
+```
+
+```{r}
+print(env_vars)
+
+pretty_col_names <- c("aCDOM(350)", "NO₃⁻ + NO₂⁻", "Total Phosphate", "Silicate", "Salinity", "Temperature", "Depth(m)")
+
+
+```
+
+```{r}
+env_scaled_troph <- scale(trophic_cdom_rel[, env_vars])
+
+# Initialiser korrelasjonsmatrisen
+cor_matrix <- matrix(NA, nrow = length(trophic_vars), ncol = length(env_vars),
+                     dimnames = list(trophic_vars, env_vars))
+
+# Beregn korrelasjon mellom hver trophic mode og miljøfaktor
+for (i in seq_along(trophic_vars)) {
+  for (j in seq_along(env_vars)) {
+    cor_matrix[i, j] <- cor(trophic_cdom_rel[[trophic_vars[i]]], env_scaled_troph[, j], use = "pairwise.complete.obs")
+  }
+}
+
+# Pretty labels for rows and columns
+
+
+# Lag heatmap
+pheatmap(cor_matrix,
+         display_numbers = TRUE,
+         number_color = "black",
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         labels_row = pretty_row_names,
+         labels_col = pretty_col_names,
+        angle_col = 45,
+
+         color = colorRampPalette(c("#633372FF", "white", "#FE9B00FF"))(50))
+```
+#Size structure 
+###nmsd for size structure 
+```{r}
+dist_matrix3 <- vegdist(adonis_data_clean3 %>% select(starts_with("bin")), method = "bray")
+
+nmds <- metaMDS(dist_matrix, k = 2, trymax = 100)
+
+env_data <- adonis_data_clean2[, c("Nitrate_Nitrite", "Salinity", "Temperature")]
+envfit_res <- envfit(nmds, env_data, permutations = 999)
+
+vectors_df <- as.data.frame(scores(envfit_res, display = "vectors"))
+vectors_df$varname <- rownames(vectors_df)
+
+# Skaler vektorene for bedre synlighet (valgfritt)
+vectors_df$NMDS1 <- vectors_df$NMDS1 * 1.5
+vectors_df$NMDS2 <- vectors_df$NMDS2 * 1.5
+
+```
+plot
+```{r}
+ggplot(ordination_df_nmds, aes(x = MDS1, y = MDS2)) +
+  geom_point(size = 4, alpha = 0.8, aes(colour = Season)) +
+  stat_ellipse(aes(colour = Season), type = "t", level = 0.95) +
+  
+  # Miljøvektorer
+  geom_segment(data = vectors_df,
+               aes(x = 0, y = 0, xend = NMDS1, yend = NMDS2),
+               arrow = arrow(length = unit(0.2, "cm")),
+               color = "black", inherit.aes = FALSE,  nudge_x = 0.05, nudge_y = 0.05) +
+  geom_text_repel(data = vectors_df,
+                  aes(x = NMDS1, y = NMDS2, label = varname),
+                  size = 4, color = "black", inherit.aes = FALSE) +
+   geom_text_repel(aes(label = Sample, color=Season), 
+                size = 3, 
+                box.padding = 0.3, 
+                max.overlaps = 20)+ # Bruker geom_text_repel for sample labels
+
+  scale_colour_manual(values = c("Summer" = "#F4C40FFF", 
+                                 "Fall" = "#9F5691FF", 
+                                 "Winter" = "#E87B89FF"),
+                      labels = c("Summer" = "May",
+                                 "Fall" = "September",
+                                 "Winter" = "December")) +
+  labs(x = "NMDS1", y = "NMDS2", colour = "Sampling month") +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+
+##barplot size structure 
+```{r}
+bin_labels2 <- paste0( round(bin_edges[-length(bin_edges)], 1), 
+                     "–", round(bin_edges[-1], 1))
+# Forbered data med bin etiketter
+motherdoc_binned <- motherdoc_5m %>%
+  mutate(size_bin = cut(Size_a, breaks = bin_edges, include.lowest = TRUE, labels = bin_labels2))
+
+# Gruppere og telle antall per bin
+bin_distribution <- motherdoc_binned %>%
+  group_by(size_bin, Location, Season) %>%
+  summarise(count = n(), .groups = "drop")
+bin_distribution <- na.omit(bin_distribution)
+
+
+# Plotting med ggplot2
+library(ggplot2)
+library(viridisLite)
+
+ggplot(bin_distribution, aes(x = size_bin, y = count, fill = Location)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = expression("Protist Size (length x width)(" ~ mu ~ "m"^2 ~ ")"), 
+       y = "Counts") +
+  facet_grid(rows = vars(Season))+
+scale_fill_manual(values = c(
+    "Svartskjaer" = "#FBE183FF", 
+    "Prestoyrenna" = "#F4C40FFF", 
+    "MFS" = "#FE9B00FF", 
+    "LOK1" = "#E87B89FF", 
+    "LOK2" = "#DE597CFF", 
+    "Kollevoll" = "#AA7AA1FF", 
+    "Kvavik" = "#9F5691FF"
+  ))+
+  theme_minimal()+
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+
+#Appendix figures 
+
+##correlation plot 
+
+
+```{r}
+meta_perm_licor <- meta_data_w_light %>%
+  select(Sample,abs_coefficient,Nitrate_Nitrite,Total_Phosphate,Silicate,Salinity,Temperature,light_percent, Depth)
+
+adonis_data_licor<-left_join(Trophic_abundance_table_licor,meta_perm_licor,  by = "Sample")
+
+adonis_data_licor <- adonis_data_licor[!grepl("_(300424|020524)", adonis_data_licor$Sample), ]
+```
+
+```{r}
+library(corrplot)
+
+# Velg kun numeriske kolonner
+num_vars <- adonis_data_licor[sapply(adonis_data_licor, is.numeric)]
+
+# Lag korrelasjonsmatrise
+corr_matrix <- cor(num_vars, use = "pairwise.complete.obs")
+
+# Lag plot
+corrplot(corr_matrix, method = "color", addCoef.col = "black",number.cex = 0.6)
+```
+
+##rarefaction curve 
+```{r}
+rarecurve(asv_table, step = 100, col = rainbow(nrow(asv_table)), label = TRUE, cex=0.4)
+
+```
+
+##NMSD clustering of trophic mode samples 
+```{r}
+
+nmds <- metaMDS(Trophic_abundance_table_cdom, distance = "bray", k = 2, trymax = 100)
+nmds_df <- as.data.frame(nmds$points)
+nmds_df$Sample <- rownames(nmds_df)
+
+# 2. Legg til metadata
+adonis_data_cdom$Sample <- as.character(adonis_data_cdom$Sample)
+nmds_df$Sample <- as.character(nmds_df$Sample)
+nmds_df <- left_join(nmds_df, adonis_data_cdom, by = "Sample")
+
+# 3. Velg miljøvariabler og fjern NA
+env_vars <- adonis_data_cdom %>%
+  select(abs_coefficient, Temperature, Salinity)
+
+# Fjern NA og tilpass NMDS-dataene samtidig
+complete_cases <- complete.cases(env_vars)
+env_vars_clean <- env_vars[complete_cases, ]
+nmds_clean <- nmds_df[complete_cases, ]
+
+# 4. Kjør envfit
+envfit_res <- envfit(nmds, env_vars_clean, permutations = 999)
+
+# 5. Ekstraher og skaler vektorene
+vectors_df <- as.data.frame(scores(envfit_res, display = "vectors"))
+vectors_df$Variable <- rownames(vectors_df)
+
+scale_factor <- 1.5
+vectors_df$MDS1 <- vectors_df$NMDS1 * scale_factor
+vectors_df$MDS2 <- vectors_df$NMDS2 * scale_factor
+
+```
+```{r}
+nmds_df$Season <- factor(nmds_df$Season, levels = c("Post_Spring_bloom", "Early_Fall", "Early_Winter"))
+
+pretty_col_names <- c("abs_coefficient"="aCDOM(350)", "Temperature"= "Temperature","Salinity"="Salinity","Nitrate_Nitrite"="NO₃⁻ + NO₂⁻")
+
+ggplot(nmds_df, aes(x = MDS1, y = MDS2, colour = Season)) +
+  geom_point(size = 3) +
+  geom_text(aes(label = Sample), vjust = -1, size = 2.6) +
+  geom_mark_ellipse(aes(group = Season)) +
+  geom_segment(data = vectors_df,
+               aes(x = 0, y = 0, xend = MDS1, yend = MDS2),
+               arrow = arrow(length = unit(0.2, "cm")),
+               color = "black", inherit.aes = FALSE) +
+  geom_text_repel(data = vectors_df,
+                  aes(x = MDS1, y = MDS2, label = pretty_col_names[Variable]),
+                  color = "black", size = 4, inherit.aes = FALSE, box.padding = 0.4, max.overlaps = 10) +
+  scale_colour_manual(values = c("Post_Spring_bloom" = "#F4C40FFF", 
+                                 "Early_Fall" = "#9F5691FF", 
+                                 "Early_Winter" = "#E87B89FF"),
+                      labels = c("Post_Spring_bloom" = "May",
+                                 "Early_Fall" = "September",
+                                 "Early_Winter" = "December")) +
+  labs(x = "NMDS1", y = "NMDS2", colour = "Sampling month") +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 14),
+    axis.text = element_text(size = 12),
+    legend.title = element_text(size = 14),
+    legend.text = element_text(size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+

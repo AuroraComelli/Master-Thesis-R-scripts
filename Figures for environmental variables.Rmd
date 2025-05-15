@@ -1,0 +1,141 @@
+#Figures for environmental variables
+
+##heatmap for environmental correlations with dna samples(not based on dna data only variables)
+```{r}
+# Skalere variablene først slik at de er sammenlignbare (z-score)
+env_scaled <- scale(meta_data_matched_cdom[, c("abs_coefficient", "Nitrate_Nitrite", "Total_Phosphate","Silicate","Salinity", "Temperature")])
+```
+
+```{r}
+pretty_col_names <- c("aCDOM(350)", "NO₃⁻ + NO₂⁻", "Total Phosphate", "Silicate", "Salinity", "Temperature")
+```
+
+```{r}
+# Lag heatmap
+pheatmap(env_scaled,
+         display_numbers = TRUE,
+         number_color = "black",
+         cluster_rows = TRUE,
+         cluster_cols = FALSE,
+         angle_col = 45,
+         show_rownames = TRUE,
+         labels_col = pretty_col_names, 
+         color = colorRampPalette(c("#633372FF", "white", "#FE9B00FF"))(50))
+
+```
+
+##CTD + chl a
+```{r}
+motherdoc_long <- motherdoc %>%
+  pivot_longer(cols = c(Temperature, Salinity, Oxygen, Chla),
+               names_to = "Variable",
+               values_to = "Value")
+motherdoc_long_filtered20 <- motherdoc_long %>%
+  filter(Depth >= 0 & Depth <= 20)
+```
+```{r}
+ggplot(motherdoc_long_filtered20, aes(x =  Value, y = Depth, color = Variable, group = interaction(Variable))) +
+  geom_path(size = 0.5) +
+  geom_point(size = 1) +
+  facet_grid(
+    rows = vars(Location), 
+    cols = vars(Season), 
+    scales = "free_y",
+    labeller = labeller(Season = c("Summer" = "May", "Fall" = "September", "Winter" = "December"))
+  ) +
+  scale_y_reverse() +
+  scale_color_manual(
+    values = c(
+      "Temperature" = "#9F5691FF",
+      "Salinity" = "#E87B89FF",
+      "Oxygen" = "#F4C40FFF",
+      "Chla" = "#92C051FF"
+    ),
+    labels = c(
+  "Temperature" = expression(Temperature~(degree*C)),
+  "Salinity"    = expression(Salinity~(PSU)),
+  "Oxygen"      = expression(Oxygen~("%")),
+  "Chla"        = expression(Chl~italic(a)~(mu*g/L))
+)) +
+  labs(color = NULL, x = NULL, y = "Depth (m)") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 9),
+    axis.text.x = element_text(hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+#nutrients + chl a
+```{r}
+ggplot(nutrients_chla, aes(x =micromol_per_L, y = Depth, color = Compound, group = interaction(Location,Compound))) +
+  geom_path(size=0.5) +
+  geom_point(size = 1)+
+  facet_grid(rows = vars(Location), cols = vars(Season),labeller = labeller(Season = c("Summer"="May", "Fall"="September", "Winter"="December"))) +
+  scale_y_reverse() +
+  scale_color_manual(values=c( "Nitrate Nitrite" = "#9F5691FF",
+      "Silicate" = "#E87B89FF",
+      "Total Phosphate" = "#F4C40FFF",
+      "Chla" = "#92C051FF"), 
+      labels = c(
+  "Nitrate Nitrite" = "Nitrate Nitrite",
+  "Silicate"   = "Silicate",
+  "Total Phosphate" = "Total Phosphate",
+  "Chla" = expression(Chl~italic(a)~(mu*g/L))))+
+  labs(color = NULL, x = expression(mu * "mol/L"), y = "Depth (m)") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 9),
+    axis.text.x = element_text(hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+#Appendix figures
+```{r}
+ggplot(motherdoc_long, aes(x =  Value, y = Depth, color = Variable, group = interaction(Location, Season, Variable, Date))) +
+  geom_path(size = 0.5) +
+  geom_point(size = 1) +
+  facet_grid(
+    rows = vars(Location), 
+    cols = vars(Season), 
+    scales = "free_y",
+    labeller = labeller(Season = c("Summer" = "May", "Fall" = "September", "Winter" = "December"))
+  ) +
+  scale_y_reverse() +
+  scale_color_manual(
+    values = c(
+      "Temperature" = "#9F5691FF",
+      "Salinity" = "#E87B89FF",
+      "Oxygen" = "#F4C40FFF",
+      "Chla" = "#92C051FF"
+    ),
+    labels = c(
+  "Temperature" = expression(Temperature~(degree*C)),
+  "Salinity"    = expression(Salinity~(PSU)),
+  "Oxygen"      = expression(Oxygen~("%")),
+  "Chla"        = expression(Chl~italic(a)~(mu*g/L))
+)) +
+  labs(color = NULL, x = NULL, y = "Depth (m)") +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 12),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 9),
+    axis.text.x = element_text(hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 12),
+    legend.text = element_text(size = 11),
+    legend.title = element_text(size = 12), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+

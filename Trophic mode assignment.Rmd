@@ -1,0 +1,75 @@
+Trophic mode matching 
+
+
+```{r}
+library(tidyverse)
+```
+This R script was borrowed from Catlett et al., 2023.  
+Catlett, D., Siegel, D. A., Matson, P. G., Wear, E. K., Carlson, C. A., Lankiewicz, T. S., & Iglesias‐Rodriguez, M. D. (2023). Integrating phytoplankton pigment and DNA meta‐barcoding observations to determine phytoplankton composition in the coastal ocean. Limnology and Oceanography, 68(2), 361-376. 
+
+#rarefied 
+```{r}
+# this script maps a taxonomy table onto the compilation of
+# nutritional modes for particular lineages of protists in order to
+# classify ASVs as phytoplankotn
+
+tax <- readRDS("marine_protists_rarefied.rds") # read in ASV taxonomic assignments
+trophs <- read.csv("Trophic_modes_catlett_2023.csv",
+                   header = TRUE, stringsAsFactors = FALSE) # trophic assignments
+
+# extract col of most-resolved tax assignment for each ASV:
+lowest <- apply(tax, MARGIN = 1, FUN = function(x) max(which(!is.na(x))))
+tax.troph <- cbind(tax, data.frame(matrix(NA, nrow = nrow(tax), ncol = 2)))
+colnames(tax.troph) <- c(colnames(tax), c("phyto", "troph"))
+no.troph <- vector(mode = "character")
+tmp.no.troph <- vector(mode = "character")
+for (i in 1:length(lowest)) {
+  col <- lowest[i]
+  taxnam <- tax[i, col]
+  # when col == 3 you're at the kingdom rank
+  # check for names at all other ranks
+  while (col > 3 && !(taxnam %in% trophs$Tax_name)) {
+    col <- col-1
+    tmp.no.troph <- c(tmp.no.troph, taxnam)
+    taxnam <- tax[i, col]
+  }
+  # so now if col == 3 the lineage will be unassigned
+  if (col == 3) {
+    # lineage is unassigned... only known at kingdom
+    # that means do nothing since they're already NA...
+    # but do save the names:
+    no.troph <- c(no.troph, tmp.no.troph)
+  } else if (taxnam %in% trophs$Tax_name) {
+    # taxnam was found in trophs. so extract the trophs and assign 
+    row.match <- which(trophs$Tax_name %in% taxnam)
+    troph.match <- trophs[row.match , ]
+
+    # assign phytoplankton or not:
+    tax.troph$phyto[i] <- troph.match$phytoplankton
+
+    if (all(is.na(troph.match[, c("Troph2", "Troph3", "Troph4", "Exceptions1", "Exceptions2",
+                                  "Exceptions3", "Exceptions4", "Exceptions5", "Exceptions6",
+                                  "Exceptions7", "Exceptions8", "Exceptions9", "Exceptions10")]))) {
+      # assign the Troph column as it's not ambiguous
+      tax.troph$troph[i] <- troph.match$Troph
+
+    } else {
+      # assign NA to Troph column (so just do nothing...)
+    }
+  }
+
+  tmp.no.troph <- vector(mode = "character")
+}
+
+no.troph <- unique(no.troph)
+
+unktax.troph1 <- unique(tax.troph[is.na(tax.troph$phyto) , 3:ncol(tax.troph)], MARGIN = 1) # where phyto is unknown
+unktax.troph2 <- unique(tax.troph[is.na(tax.troph$troph) , 3:ncol(tax.troph)], MARGIN = 1) # where troph is unknown
+
+```
+
+```{r}
+tax.troph_rarefied<-tax.troph
+tax.troph_rarefied$phyto<-as.factor(tax.troph_rarefied$phyto)
+```
+

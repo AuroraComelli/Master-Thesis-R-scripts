@@ -1,0 +1,331 @@
+#CDOM Analysis and figures
+
+libraries needed
+```{r}
+library(tidyverse)
+library(dunn.test)
+```
+
+```{r}
+df_CDOM<-read_csv2("CDOM_2024_concentrations.csv")
+df_CDOM<- df_CDOM%>%
+  select(-...1)
+```
+##figures
+###CDOM absorbance all wavelengths
+
+```{r}
+ggplot(df_cdom, aes(y = Absorbance, x = `Wavelength (nm)`, color = Depth)) +
+  geom_line(size=1) +
+  facet_grid(
+    rows = vars(Location),
+    cols = vars(Season),
+    labeller = labeller(
+      Season = c(
+        "Post Spring bloom" = "May",
+        "Early Fall" = "September",
+        "Early Winter" = "December"
+      )
+    )
+  ) +
+  scale_color_manual(values = c("2"="#E87B89FF","5"="#9F5691FF","0"="#F4C40FFF"))+
+  labs(y = "Absorbance",
+    x = "Wavelength (nm)",
+    color = "Depth (m)"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(size = 10),
+    axis.text.y = element_text(size = 9),
+    axis.text.x = element_text(size = 10),
+    axis.title = element_text(size = 10),
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 10), 
+    strip.text.y = element_text(size = 9),
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+
+
+#CDOM concentration (a350)
+```{r}
+df_cdom_filtered_350 <- df_CDOM %>%
+  filter(`Wavelength (nm)` == 350)
+```
+
+```{r}
+ggplot(df_cdom_filtered_350, aes(x = Location, y = abs_coefficient, fill = Depth)) +
+  geom_col(position = "dodge") +  # Dodge posisjonerer stolpene ved siden av hverandre for hver dato
+  scale_fill_manual(values = c("#F4C40FFF", "#E87B89FF", "#AA7AA1FF")) +
+  facet_wrap(~Season, labeller = labeller(
+      Season = c(
+        "Post Spring bloom" = "May",
+        "Early Fall" = "September",
+        "Early Winter" = "December"
+      )    ))+
+  labs(x = "Location",
+y = expression(paste("Absorbance coefficient    ", A[350], " (m"^{-1}, ")")),       fill = "Depth (m)") +
+theme_minimal()+
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+```
+#Descriptive statistics
+
+```{r}
+df_cdom_filtered_350_0m <- df_cdom_filtered_350 %>%
+  filter(Depth == 0)
+```
+
+
+```{r}
+# Beregner statistikk for abs_coefficient per sesong
+season_stats_0 <- df_cdom_filtered_350_0m %>%
+  group_by(Season) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+  )
+
+# Beregner statistikk for abs_coefficient per lokasjon
+location_stats_0 <- df_cdom_filtered_350_0m %>%
+  group_by(Location) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_season = Season[which.min(abs_coefficient)],
+    max_season = Season[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+)
+
+# Finn min og maks verdi for abs_coefficient med tilhørende dato og lokasjon
+min_max_values_0 <- df_cdom_filtered_350_0m %>%
+  summarise(
+    min_value = min(abs_coefficient, na.rm = TRUE),
+    max_value = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)],
+    min_location = Location[which.min(abs_coefficient)],
+    max_location = Location[which.max(abs_coefficient)]
+  )
+
+# Utskrift av resultatene
+print(season_stats_0)
+print(location_stats_0)
+print(min_max_values_0)
+
+
+location_stats_fall <- df_cdom_filtered_350_0m %>%
+  filter(Season == "Early_Fall") %>%
+  group_by(Location) %>%
+  summarise(
+    mean_abs = mean(abs_coefficient, na.rm = TRUE),
+    sd_abs = sd(abs_coefficient, na.rm = TRUE),
+    min_abs = min(abs_coefficient, na.rm = TRUE),
+    max_abs = max(abs_coefficient, na.rm = TRUE),
+    min_date = Date[which.min(abs_coefficient)],
+    max_date = Date[which.max(abs_coefficient)]
+  )
+
+```
+Ble gjenntatt for 5m 
+
+#Statistical analysis for CDOM 
+```{r}
+
+# Filtrer til én sesong, for eksempel Fall
+sep_data <- df_cdom_filtered_350_5m %>% filter(Season == "Early Fall")
+may_data <- df_cdom_filtered_350_5m %>% filter(Season == "Post Spring bloom")
+dec_data <- df_cdom_filtered_350_5m %>% filter(Season == "Early Winter")
+```
+
+
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Location, data = df_cdom_filtered_350)
+
+# Dunn's test 
+dunn.test(df_cdom_filtered_350$abs_coefficient, df_cdom_filtered_350$Location, method = "bonferroni")
+
+```
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Location, data = sep_data)
+
+# Dunn's test 
+dunn.test(sep_data$abs_coefficient, sep_data$Location, method = "bonferroni")
+
+```
+
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Location, data = may_data)
+
+# Dunn's test 
+dunn.test(may_data$abs_coefficient, may_data$Location, method = "bonferroni")
+
+```
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Location, data = dec_data)
+
+# Dunn's test 
+dunn.test(dec_data$abs_coefficient, dec_data$Location, method = "bonferroni")
+
+```
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Season, data = df_cdom_filtered_350)
+
+# Dunn's test (med Bonferroni- eller Holm-korrigering)
+dunn.test(df_cdom_filtered_350$abs_coefficient, df_cdom_filtered_350$Season, method = "bonferroni")
+
+```
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Season, data = df_cdom_filtered_350_0m)
+
+# Dunn's test 
+dunn.test(df_cdom_filtered_350_0m$abs_coefficient, df_cdom_filtered_350_0m$Season, method = "bonferroni")
+
+```
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Season, data = df_cdom_filtered_350_5m)
+
+# Dunn's test 
+dunn.test(df_cdom_filtered_350_5m$abs_coefficient, df_cdom_filtered_350_5m$Season, method = "bonferroni")
+
+```
+
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_coefficient ~ Location, data = df_cdom_filtered_350_5m)
+
+# Dunn's test (med Bonferroni- eller Holm-korrigering)
+dunn.test(df_cdom_filtered_350_5m$abs_coefficient, df_cdom_filtered_350_5m$Location, method = "bonferroni")
+```
+```{r}
+kruskal.test(abs_coefficient ~ Location, data = df_cdom_filtered_350_0m)
+
+# Dunn's test (med Bonferroni- eller Holm-korrigering)
+dunn.test(df_cdom_filtered_350_0m$abs_coefficient, df_cdom_filtered_350_0m$Location, method = "bonferroni")
+
+```
+
+##Absorbtion Ratios
+absorbtion ratios are calculated at the selected wavelenghts 254, 365 and 436 for calculation of E2/E3 and E2/E4
+```{r}
+abs254<- df_CDOM %>%
+  filter(`Wavelength (nm)` == 254) %>%
+  mutate(a254 = (Absorbance * 2.303)/0.1)
+```
+
+```{r}
+abs436<- df_CDOM %>%
+  filter(`Wavelength (nm)` == 436) %>%
+  mutate(a436 = (Absorbance * 2.303)/0.1)
+```
+
+```{r}
+abs365<- df_CDOM %>%
+  filter(`Wavelength (nm)` == 365) %>%
+  mutate(a365 = (Absorbance * 2.303)/0.1)
+```
+they are combined
+```{r}
+df_abs_ratio <- merge(abs254, abs436, by = c ("Location", "Date","Season", "Depth"))
+df_abs_ratio <- merge(df_abs_ratio, abs365, by = c ("Location", "Depth", "Date","Season" ))
+```
+Selected only columns needed
+```{r}
+df_abs_ratio<-df_abs_ratio%>%
+  select(Location,Date,Depth,Season,a254,a365,a436)
+```
+Add new columns for molecular weight E2/E3 and lignin content E2/E4
+```{r}
+df_abs_ratio$abs_ratio_ld <- df_abs_ratio$a254 / df_abs_ratio$a436
+df_abs_ratio$abs_ratio_mw <- df_abs_ratio$a254 / df_abs_ratio$a365
+
+```
+#Statistical analysis 
+```{r}
+# Kruskal-Wallis
+kruskal.test(abs_ratio_mw ~ Location, data = df_abs_ratio)
+kruskal.test(abs_ratio_ld ~ Location, data = df_abs_ratio)
+
+kruskal.test(abs_ratio_mw ~ Season, data = df_abs_ratio)
+kruskal.test(abs_ratio_ld ~ Season, data = df_abs_ratio)
+
+dunn.test(df_abs_ratio$abs_ratio_mw, df_abs_ratio$Season, method = "bonferroni")
+```
+
+#Figure for Absorbtion ratio mw and lg
+
+```{r}
+df_abs_ratio_long <- df_abs_ratio %>%
+  pivot_longer(
+    cols = c(abs_ratio_ld, abs_ratio_mw),
+    names_to = "abs_ratio_type",
+    values_to = "absorbance_value"
+  ) %>%
+  mutate(
+    abs_ratio_type = case_when(
+      abs_ratio_type == "abs_ratio_ld" ~ "Lignin-derived",
+      abs_ratio_type == "abs_ratio_mw" ~ "Molecular weight",
+      TRUE ~ abs_ratio_type
+    )
+  )
+```
+
+```{r}
+ggplot(df_abs_ratio_long, aes(x = Location, y = absorbance_value, fill = Depth)) +
+geom_col(position = "dodge")+
+  facet_grid(
+    rows = vars(abs_ratio_type),
+    cols = vars(Season),scales = "free_y",
+    labeller = labeller(
+     abs_ratio_type = as_labeller(c(
+      "Molecular weight" = "A[254]/A[365]",
+      "Lignin-derived" = "A[254]/A[436]"
+    ), label_parsed),
+      Season = c(
+        "Post Spring bloom" = "May",
+        "Early Fall" = "September",
+        "Early Winter" = "December"
+      )    )
+  ) +
+  scale_fill_manual(values = c("2" = "#E87B89FF", "5" = "#9F5691FF", "0" = "#F4C40FFF")) +
+  labs(
+    y = "Absorbance Ratio",
+    x = "Location",
+    fill = "Depth (m)"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(size = 14),
+    strip.background = element_blank(),
+    strip.text = element_text(color = "black", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.title = element_text(size = 14), 
+    panel.background = element_rect(fill = "#F6F6F6"))
+
+```
+

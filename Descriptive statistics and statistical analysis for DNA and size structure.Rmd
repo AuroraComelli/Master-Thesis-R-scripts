@@ -1,0 +1,658 @@
+#Descriptive statitics and statistical analysis
+```{r}
+
+library(tidyverse)
+library(dunn.test)
+
+```
+
+##Descriptiv statistics on sequences 
+
+```{r}
+# Compute % of non chimeras
+paste0("% of non chimeras : ", sum(seqtab.nochim)/sum(seqtab) * 100)
+paste0("total number of sequences : ", sum(seqtab.nochim))
+paste0("total number of sequences after filtering : ", sum(seqtab.filtered3))
+paste0(sum(seqtab))
+```
+
+```{r}
+unmatched_sequences<-sum(is.na(ps_protist_df$Species))  # Dette kan gjøres for andre taksonomiske nivåer også
+total_seqs <- length(ps_protist_df$Species)
+unmatched_percent <- unmatched_sequences / total_seqs * 100
+matched_percent<-100-unmatched_percent
+print(matched_percent)
+print(total_seqs)
+sample_sums(ps_protists)
+
+```
+
+```{r}
+# Compute % of non chimeras
+paste0("% of non chimeras : ", sum(seqtab.nochim)/sum(seqtab) * 100)
+paste0("% of non chimeras left after filtering ASVs <10 : ", sum(seqtab.filtered3)/sum(seqtab) * 100)
+paste0("% left after filtering ASVs <10 : ",  sum(seqtab.filtered3)/sum(seqtab.nochim) * 100)
+paste0("% removed after filtering ASVs <10 : ", 100-( sum(seqtab.filtered3)/sum(seqtab.nochim) * 100))
+paste0("total number of sequences after filtering : ", sum(seqtab.nochim))
+
+paste0("total number of sequences after filtering : ", sum(seqtab.filtered3))
+paste0("total number of sequences after filtering bootstrap<80 : ", sum(seqtab_filtered_boot))
+paste0("total number of ASV : ", ncol(seqtab.nochim))
+
+paste0("total number of ASV after filtering : ", ncol(seqtab.filtered3))
+paste0("total number of ASVs after filtering bootstrap <80 : ", ncol(seqtab_filtered_boot))
+paste0("total unique ASVs only protister:", length(unique(psmelt(ps_protists)$OTU))
+)
+paste0("total reads only protister:",sum(psmelt(ps_protists)$Abundance))
+paste0("total unique ASVs of protists rarefied :", length(unique(psmelt(ps_protists_rarefied)$OTU))
+)
+
+paste0(sum(seqtab))
+```
+
+```{r}
+paste0("total unique ASVs only protists after rarefication and filtering >5:", length(unique(ps_protist_rarefied_df$OTU))
+)
+paste0("total reads only protister after rarefication and filtering >5:",sum(ps_protist_rarefied_df$Abundance))
+
+paste0("total reads only protister:",sum(psmelt(ps_protists_rarefied)$Abundance))
+
+paste0("total unique ASVs of protists rarefied :", length(unique(psmelt(ps_protists_rarefied)$OTU))
+)
+```
+
+```{r}
+read_counts <- sample_sums(ps_protists)
+
+# Prøven med minst reads
+min_sample <- names(read_counts)[which.min(read_counts)]
+min_reads <- min(read_counts)
+
+# Prøven med mest reads
+max_sample <- names(read_counts)[which.max(read_counts)]
+max_reads <- max(read_counts)
+
+cat("Minst reads:", min_sample, "-", min_reads, "reads\n")
+cat("Mest reads:", max_sample, "-", max_reads, "reads\n")
+
+```
+
+
+
+
+##Dominating classes and top orders within those across all samples
+```{r}
+top10_alveolata_overall <- ps_protist_rarefied_df %>%
+  filter(Division == "Alveolata") %>%
+  group_by(Class) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_stramenopiles_overall <- ps_protist_rarefied_df %>%
+  filter(Division == "Stramenopiles") %>%
+  group_by(Class) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_Cryptophyta_overall <- ps_protist_rarefied_df %>%
+  filter(Division == "Cryptophyta") %>%
+  group_by(Class) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_Haptophyta_overall <- ps_protist_rarefied_df %>%
+  filter(Division == "Haptophyta") %>%
+  group_by(Class) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+```
+
+
+
+```{r}
+top10_syndiniales_overall <- ps_protist_rarefied_df %>%
+  filter(Class == "Syndiniales") %>%
+  group_by(Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>% 
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>% #percentage of order in a order (example: syndiniales)
+  arrange(desc(percent)) %>% 
+  slice_head(n = 10)
+
+top10_dinophyceae_overall <- ps_protist_rarefied_df %>%
+  filter(Class == "Dinophyceae") %>%
+  group_by(Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_Cryptophyceae_overall <- ps_protist_rarefied_df %>%
+  filter(Class == "Cryptophyceae") %>%
+  group_by(Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_mediophyceae_overall <- ps_protist_rarefied_df %>%
+  filter(Class == "Mediophyceae") %>%
+  group_by(Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_gymnodiniales_overall <- ps_protist_rarefied_df %>%
+  filter(Order == "Gymnodiniales") %>%
+  group_by(Species) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+
+top10_Bacillariophyceae_overall <- ps_protist_rarefied_df %>%
+  filter(Class == "Bacillariophyceae") %>%
+  group_by(Species) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(desc(percent)) %>%
+  slice_head(n = 10)
+```
+##Dominating classes across seasons
+```{r}
+top5_syndiniales_per_season <- ps_protist_rarefied_df %>%
+  filter(Class == "Syndiniales") %>%
+  group_by(Season, Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>% # percentage of total abundance per season
+  group_by(Season) %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(Season, desc(percent)) %>%
+  group_by(Season) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+top5_dinophyceae_per_season <- ps_protist_rarefied_df %>%
+  filter(Class == "Dinophyceae") %>%
+  group_by(Season, Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  group_by(Season) %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(Season, desc(percent)) %>%
+  group_by(Season) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+top5_cryptophyceae_per_season <- ps_protist_rarefied_df %>%
+  filter(Class == "Cryptophyceae") %>%
+  group_by(Season, Order) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  group_by(Season) %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(Season, desc(percent)) %>%
+  group_by(Season) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+top5_cryptomonadales_per_season <- ps_protist_rarefied_df %>%
+  filter(Order == "Cryptomonadales") %>%
+  group_by(Season, Species) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  group_by(Season) %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(Season, desc(percent)) %>%
+  group_by(Season) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+
+top5_dinogroup_per_season <- ps_protist_rarefied_df %>%
+  filter(Order == "Dino-Group-II") %>%
+  group_by(Season, Species) %>%
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  group_by(Season) %>%
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(Season, desc(percent)) %>%
+  group_by(Season) %>%
+  slice_head(n = 5) %>%
+  ungroup()
+```
+
+## dominating species 
+```{r}
+top_species<-ps_melted_species%>%
+  filter(!Species=="Other")
+top_species <- top_species %>%
+  mutate(Percent = Relative_Abundance * 100)
+write.csv2(top_species,"top species.csv")
+```
+
+```{r}
+top10_species_per_season_depth <- ps_protist_rarefied_df %>%
+  filter(Depth %in% c("0m", "5m", "15m")) %>%    # Filtrer etter dybde som tekst
+  group_by(Season, Depth, Species) %>%                     # Grupper etter sesong, dybde og art
+  summarise(total_abundance = sum(Abundance), .groups = "drop") %>%
+  group_by(Season, Depth) %>%                              # Grupper på nytt for prosentberegning
+  mutate(percent = total_abundance / sum(total_abundance) * 100) %>%
+  arrange(Season, Depth, desc(percent)) %>%                # Sorter etter sesong og dybde
+  slice_head(n = 10) %>%                                   # Ta topp 10 per gruppe
+  ungroup()
+```
+
+##Alpha diversity 
+```{r}
+ASV_diversity2 <- df_protist_rarefied %>%
+  group_by(Sample, OTU) %>%
+  summarise(Abundance = sum(Abundance)) %>%
+  pivot_wider(names_from = OTU, values_from = Abundance, values_fill = 0) %>%
+  column_to_rownames("Sample")
+
+
+# Beregne diversitet
+ASV_diversity2$Shannon <- diversity(ASV_diversity2, index = "shannon")
+ASV_diversity2$Simpson <- diversity(ASV_diversity2, index = "simpson")
+ASV_diversity2 <- ASV_diversity2 %>% select(Shannon, Simpson)
+
+```
+###Descriptive statistics 
+```{r}
+ASV_diversity2 <- rownames_to_column(ASV_diversity2, var = "Sample")
+
+
+summary_stats <- ASV_diversity2 %>%
+  summarise(
+    Shannon_min = min(Shannon),
+    Shannon_max = max(Shannon),
+    Shannon_median = median(Shannon),
+    Shannon_mean = mean(Shannon),
+    Shannon_sd = sd(Shannon),
+    Simpson_min = min(Simpson),
+    Simpson_max = max(Simpson),
+    Simpson_median = median(Simpson),
+    Simpson_mean = mean(Simpson),
+    Simpson_sd = sd(Simpson)
+  )
+
+# Finn prøvene som har lavest og høyest verdier
+shannon_min_sample <- ASV_diversity2 %>% filter(Shannon == min(Shannon)) %>% pull(Sample)
+shannon_max_sample <- ASV_diversity2 %>% filter(Shannon == max(Shannon)) %>% pull(Sample)
+
+simpson_min_sample <- ASV_diversity2 %>% filter(Simpson == min(Simpson)) %>% pull(Sample)
+simpson_max_sample <- ASV_diversity2 %>% filter(Simpson == max(Simpson)) %>% pull(Sample)
+
+# Legg til disse i tabellen
+summary_stats$Shannon_min_sample <- shannon_min_sample
+summary_stats$Shannon_max_sample <- shannon_max_sample
+summary_stats$Simpson_min_sample <- simpson_min_sample
+summary_stats$Simpson_max_sample <- simpson_max_sample
+
+# Vis tabellen
+summary_stats
+
+```
+
+```{r}
+diversty_stats_season<-ASV_diversity2 %>%
+  group_by(Season) %>%
+  summarise(
+    mean_shannon = mean(Shannon, na.rm = TRUE),
+    mean_simpson = mean(Simpson, na.rm = TRUE)
+  )
+print(diversty_stats_season)
+```
+
+##statistical analysis for Alpha diversity 
+```{r}
+shannonsimpsondf <- merge(ASV_diversity2, meta_data, by="Sample")
+
+```
+did not meet assumptions for ANOVA so kruskal-wallis was used 
+```{r}
+kruskal.test(Shannon ~ Season, data = shannonsimpsondf)
+
+```
+```{r}
+kruskal.test(Simpson ~ Season, data = shannonsimpsondf)
+
+```
+```{r}
+dunn.test(x = shannonsimpsondf$Simpson, g = shannonsimpsondf$Season, method = "bonferroni")
+
+```
+```{r}
+dunn.test(x = shannonsimpsondf$Shannon, g = shannonsimpsondf$Season, method = "bonferroni")
+
+```
+
+
+#Bray curtis dissimiliarity (PERMANOVA)
+
+```{r}
+# Laster inn nødvendige pakker
+library(vegan)
+
+# Sørg for at Sample-navnene matcher
+# Vi setter radnavn i metadata til å være sample-navnene
+rownames(meta_data) <- meta_data$Sample
+
+# Så reordner vi metadata i samme rekkefølge som asv_rarefied
+# Filtrer metadata til kun de prøvene som finnes i ASV-tabellen
+meta_data_matched <- meta_data[rownames(asv_table_rarefied), ]
+
+# Nå skal denne kjøre uten feil
+stopifnot(identical(rownames(meta_data_matched), rownames(asv_table_rarefied)))
+
+
+# Lag Bray-Curtis distansematrise
+asv_dist <- vegdist(asv_table_rarefied, method = "bray")
+```
+
+
+```{r}
+# Kjør PERMANOVA – f.eks. med Location og Season
+permanova_result1 <- adonis2(asv_dist ~ Location + Season, data = meta_data_matched,by="terms", permutations = 10000)
+permanova_result2 <- adonis2(asv_dist ~ Nitrate_Nitrite+ Total_Phosphate+Silicate+ Salinity+ Temperature, data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result5 <- adonis2(asv_dist ~ Depth, data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result6 <- adonis2(asv_dist ~ Salinity , data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result7 <- adonis2(asv_dist ~ Depth+ Salinity , data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result8 <- adonis2(asv_dist ~Salinity+ Depth+ Nitrate_Nitrite , data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result9 <- adonis2(asv_dist ~Salinity+ Temperature+  Nitrate_Nitrite+ Total_Phosphate+Silicate +Season , data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result10 <- adonis2(asv_dist ~Salinity+ Temperature+  Nitrate_Nitrite+ Total_Phosphate+Silicate + Depth+ Location , data = meta_data_matched, permutations = 10000, by="terms")
+permanova_result11 <- adonis2(asv_dist ~ Depth+ Location , data = meta_data_matched, permutations = 10000, by="terms")
+# Vis resultatene
+print(permanova_result1)
+print(permanova_result2)
+print(permanova_result5)
+print(permanova_result6)
+print(permanova_result7)
+print(permanova_result8)
+print(permanova_result9)
+print(permanova_result10)
+print(permanova_result11)
+
+```
+
+
+
+
+##CDOM (without 15m)
+
+```{r}
+asv_table_rarefied_cdom <- asv_table_rarefied[!grepl("_15m", rownames(asv_table_rarefied)), ]
+
+# Sjekk de filtrerte radene
+
+```
+
+```{r}
+# Så reordner vi metadata i samme rekkefølge som asv_rarefied
+# Filtrer metadata til kun de prøvene som finnes i ASV-tabellen
+meta_data_matched_cdom <- meta_data[rownames(asv_table_rarefied_cdom), ]
+
+# Nå skal denne kjøre uten feil
+stopifnot(identical(rownames(meta_data_matched_cdom), rownames(asv_table_rarefied_cdom)))
+
+
+# Lag Bray-Curtis distansematrise
+asv_dist <- vegdist(asv_table_rarefied_cdom, method = "bray")
+```
+
+```{r}
+permanova_result1 <- adonis2(asv_dist ~ Location + Season, data = meta_data_matched_cdom,by="terms", permutations = 10000)
+permanova_result2 <- adonis2(asv_dist ~ Nitrate_Nitrite+ Total_Phosphate+Silicate+ Salinity+ Temperature, data = meta_data_matched_cdom, permutations = 10000, by="terms")
+permanova_result3 <- adonis2(asv_dist ~ abs_coefficient, data = meta_data_matched_cdom,by="terms", permutations = 10000)
+permanova_result4 <- adonis2(asv_dist ~ abs_coefficient+Depth, data = meta_data_matched_cdom,by="terms", permutations = 10000)
+permanova_result5 <- adonis2(asv_dist ~ Depth, data = meta_data_matched_cdom, permutations = 10000, by="terms")
+permanova_result6 <- adonis2(asv_dist ~ Salinity+abs_coefficient , data = meta_data_matched_cdom, permutations = 10000, by="terms")
+permanova_result7 <- adonis2(asv_dist ~ Depth+ Salinity+ abs_coefficient , data = meta_data_matched_cdom, permutations = 10000, by="terms")
+permanova_result8 <- adonis2(asv_dist ~Salinity+ Depth , data = meta_data_matched_cdom, permutations = 10000, by="terms")
+permanova_result9 <- adonis2(asv_dist ~Salinity+ Temperature+  Nitrate_Nitrite+ Total_Phosphate+Silicate + abs_coefficient+Season , data = meta_data_matched_cdom, permutations = 10000, by="terms")
+permanova_result10 <- adonis2(asv_dist ~Salinity+ Temperature+  Nitrate_Nitrite+ Total_Phosphate+Silicate + Depth+ abs_coefficient , data = meta_data_matched_cdom, permutations = 10000, by="margin")
+
+# Vis resultatene
+print(permanova_result1)
+print(permanova_result2)
+print(permanova_result3)
+print(permanova_result4)
+print(permanova_result5)
+print(permanova_result6)
+print(permanova_result7)
+print(permanova_result8)
+print(permanova_result9)
+print(permanova_result10)
+```
+
+##with light (without spring samples)
+```{r}
+
+# Sørg for at Sample-navnene matcher
+# Vi setter radnavn i metadata til å være sample-navnene
+rownames(meta_data_w_light) <- meta_data_w_light$Sample
+
+# Så reordner vi metadata i samme rekkefølge som asv_rarefied
+asv_table_rarefied_light <- asv_table_rarefied[
+  !grepl("_(300424|020524)", rownames(asv_table_rarefied)), ]
+
+# Filtrer metadata til kun de prøvene som finnes i ASV-tabellen
+meta_data_w_light_matched <- meta_data_w_light[rownames(asv_table_rarefied_light), ]
+
+# Nå skal denne kjøre uten feil
+stopifnot(identical(rownames(meta_data_w_light_matched), rownames(asv_table_rarefied_light)))
+
+
+# Lag Bray-Curtis distansematrise
+asv_dist <- vegdist(asv_table_rarefied_light, method = "bray")
+```
+
+
+```{r}
+# Kjør PERMANOVA – f.eks. med Location og Season
+permanova_result1 <- adonis2(asv_dist ~ Location + Season, data = meta_data_w_light_matched,by="terms", permutations = 10000)
+permanova_result2 <- adonis2(asv_dist ~Salinity+ Temperature+ Nitrate_Nitrite+Total_Phosphate+Silicate+  light_percent, data = meta_data_w_light_matched, permutations = 10000, by="terms")
+# Vis resultatene
+print(permanova_result1)
+print(permanova_result2)
+```
+
+#Size structure
+
+##Descriptive statistics 
+
+```{r}
+stats <- aggregate(Size_a ~ Sample +Location + Season, data = motherdoc_5m_clean, 
+          FUN = function(x) c(mean = mean(x, na.rm = TRUE), 
+                              median = median(x, na.rm = TRUE),
+                              sd = sd(x, na.rm = TRUE),
+                              min = min(x, na.rm = TRUE),
+                              Q1 = quantile(x, 0.25, na.rm = TRUE),
+                              Q3 = quantile(x, 0.75, na.rm = TRUE),
+                              max = max(x, na.rm = TRUE)))
+stats <- do.call(data.frame, stats)
+
+```
+
+```{r}
+summary_stats <- motherdoc_5m_clean %>%
+  summarise(
+    mean = mean(Size_a, na.rm = TRUE),
+    median = median(Size_a, na.rm = TRUE),
+    sd = sd(Size_a, na.rm = TRUE),
+    min = min(Size_a, na.rm = TRUE),
+    Q1 = quantile(Size_a, 0.25, na.rm = TRUE),
+    Q3 = quantile(Size_a, 0.75, na.rm = TRUE),
+    max = max(Size_a, na.rm = TRUE),
+    n = n()
+  )
+print(summary_stats)
+```
+
+
+##PERMANOVA
+```{r}
+# 1. Lager bin-grenser på log10-skala og runder av
+n_bins <- 8
+log_edges <- seq(log10(min(motherdoc_5m$Size_a, na.rm = TRUE)),
+                 log10(max(motherdoc_5m$Size_a, na.rm = TRUE)),
+                 length.out = n_bins + 1)
+
+# Gjør om tilbake til µm² og rund av til "pene" tall
+bin_edges <- round(10 ^ log_edges, digits = 0)
+
+# 2. Lag fine bin-navn basert på avrundede grenser uten µm²
+bin_labels <- paste0("Bin", 1:n_bins)
+
+
+# 3. Binn data
+motherdoc_binned <- motherdoc_5m %>%
+  mutate(size_bin = cut(Size_a,
+                        breaks = bin_edges,
+                        include.lowest = TRUE,
+                        labels = bin_labels))
+# 4. Lag tabell med counts per bin per sample
+bin_table <- motherdoc_binned %>%
+  group_by(Sample, size_bin) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  pivot_wider(names_from = size_bin, values_from = count, values_fill = 0)
+
+# 5. Legger på metadata
+meta <- motherdoc_5m %>%
+  select(Sample, Location, Season, abs_coefficient) %>%
+  distinct()
+meta2 <- motherdoc_5m%>%
+  select(Sample, Location, Season, abs_coefficient, Nitrate_Nitrite, Silicate, Total_Phosphate, Salinity, Temperature) %>%
+  distinct()# med CDOM
+meta3 <- motherdoc_5m%>%
+  select(Sample, Location, Season, abs_coefficient, Nitrate_Nitrite, Silicate, Total_Phosphate, Salinity, Temperature, mean_licor, light_percent) %>%
+  distinct() #med lys
+
+adonis_data <- left_join(bin_table, meta, by = "Sample")
+adonis_data2 <- left_join(bin_table, meta2, by = "Sample")
+adonis_data3<-left_join(bin_table, meta3, by = "Sample")
+
+
+adonis_data$Location <- as.factor(adonis_data$Location)
+adonis_data$Season <- as.factor(adonis_data$Season)
+
+#kolonnene som inneholder binner starter med "bin"
+size_bins <- grep("^bin", colnames(adonis_data), value = TRUE)
+
+adonis_data<- adonis_data%>%
+  select(-8)
+adonis_data2<- adonis_data2%>%
+  select(-8)
+adonis_data3<-adonis_data3%>%
+  select(-8)
+# Fjerner rader som har 0 i alle binner
+adonis_data_clean <- adonis_data%>%
+    filter(rowSums(select(., starts_with("bin"))) > 0)
+
+saveRDS(adonis_data_clean, "size_permanova_data.rds")
+saveRDS(adonis_data_clean2, "size_permanova_data2.rds")
+
+
+# 6. Lag distansematrise (Bray-Curtis)
+
+dist_matrix <- vegdist(adonis_data_clean %>% select(starts_with("bin")), method = "bray")
+
+# 7. Kjør PERMANOVA 
+adonis_result1 <- adonis2(dist_matrix ~ Location + abs_coefficient + Season,
+                         data = adonis_data_clean, permutations = 1500)
+adonis_result2 <- adonis2(dist_matrix ~ Location + Season, 
+         data = adonis_data_clean, permutations = 1500)
+adonis_result3 <- adonis2(dist_matrix ~ Location,
+                         data = adonis_data_clean, permutations = 1500)
+adonis_result4 <- adonis2(dist_matrix ~ Season,
+                         data = adonis_data_clean, permutations = 1500)
+adonis_result5 <- adonis2(dist_matrix ~ abs_coefficient,
+                         data = adonis_data_clean, permutations = 1500)
+# Printe resultater
+print(adonis_result1)
+print(adonis_result2)
+print(adonis_result3)
+print(adonis_result4)
+print(adonis_result5)
+
+```
+###including cdom and nutrients without 15m 
+```{r}
+# Kolonnene som inneholder binner starter med "bin"
+size_bins <- grep("^bin", colnames(adonis_data2), value = TRUE)
+
+adonis_data_clean2 <- adonis_data2%>%
+    filter(rowSums(select(., starts_with("bin"))) > 0)
+
+dist_matrix2 <- vegdist(adonis_data_clean2 %>% select(starts_with("bin")), method = "bray")
+
+# 5. Kjør PERMANOVA (eksempel med både kategorisk og numerisk variabel)
+adonis_result1 <- adonis2(dist_matrix2 ~ Location,
+                         data = adonis_data_clean2,
+                         permutations = 10000, by= "term")
+
+adonis_result2 <- adonis2(dist_matrix2 ~ Season,
+                          data = adonis_data_clean2,
+                          permutations = 10000, by="term")
+
+adonis_result3 <- adonis2(dist_matrix2 ~ abs_coefficient+Salinity,
+                         data = adonis_data_clean2,
+                         permutations = 10000, by="term")
+
+adonis_result4 <- adonis2(dist_matrix2 ~ abs_coefficient + Nitrate_Nitrite+ Silicate+ Total_Phosphate + Salinity+ Temperature+ Season,
+                          data = adonis_data_clean2,
+                          permutations = 10000, by="term")
+
+adonis_result5 <- adonis2(dist_matrix2 ~ Salinity+ Nitrate_Nitrite+ Silicate+ Total_Phosphate +  Temperature + Season+abs_coefficient,
+                          data = adonis_data_clean2,
+                          permutations = 10000, by="term")
+
+
+print(adonis_result1)
+print(adonis_result2)
+print(adonis_result3)
+print(adonis_result4)
+print(adonis_result5)
+
+
+
+
+
+```
+
+###including light percent without spring
+```{r}
+adonis_data_clean3 <- adonis_data3%>%
+    filter(rowSums(select(., starts_with("bin"))) > 0)
+adonis_data_clean3<-na.omit(adonis_data_clean3)
+
+
+  
+dist_matrix3 <- vegdist(adonis_data_clean3 %>% select(starts_with("bin")), method = "bray")
+
+# 5. Kjør PERMANOVA (eksempel med både kategorisk og numerisk variabel)
+adonis_result1 <- adonis2(dist_matrix3 ~Salinity+ Nitrate_Nitrite+ Silicate+ Total_Phosphate +  Temperature+ light_percent+ mean_licor+ abs_coefficient,                         data = adonis_data_clean3,
+                         permutations = 10000, by= "term")
+adonis_result2 <- adonis2(dist_matrix3 ~ light_percent,                         data = adonis_data_clean3,
+                         permutations = 10000, by= "term")
+adonis_result3 <- adonis2(dist_matrix3 ~Salinity+ Nitrate_Nitrite +  Temperature + light_percent ,                         data = adonis_data_clean3,
+                         permutations = 10000, by= "term")
+adonis_result4 <- adonis2(dist_matrix3 ~ abs_coefficient,                         data = adonis_data_clean3,
+                         permutations = 10000, by= "term")
+
+print(adonis_result1)
+print(adonis_result2)
+print(adonis_result3)
+print(adonis_result4)
+
+
+```
+
+
+
+
+
